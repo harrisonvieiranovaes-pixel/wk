@@ -1,111 +1,152 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8" />
-<title>Rádio a partir de Imagem</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Walkie Talkie Fácil</title>
 <style>
   body {
-    background: #222;
-    color: #eee;
-    font-family: 'Arial Black', Arial, sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
-  #radio {
-    position: relative;
-    width: 320px;
-    height: 200px;
-    background: url('https://i.imgur.com/2D8WwBr.png') no-repeat center center;
-    background-size: contain;
-    filter: drop-shadow(0 0 10px #0f0);
-  }
-  button, input[type=range] {
-    position: absolute;
-    background: rgba(0,0,0,0.6);
-    border: 1px solid #0f0;
-    color: #0f0;
-    cursor: pointer;
-    font-weight: bold;
-    user-select: none;
-  }
-  #power {
-    bottom: 20px;
-    left: 20px;
-    width: 60px;
-    height: 30px;
-  }
-  #volume {
-    bottom: 20px;
-    right: 20px;
-    width: 100px;
-  }
-  #frequency {
-    top: 70px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 180px;
-  }
-  #display {
-    position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 140px;
-    height: 30px;
-    background: rgba(0,0,0,0.8);
-    border: 1px solid #0f0;
-    color: #0f0;
+    background: url('r.png') no-repeat center center fixed;
+    background-size: cover;
+    color: white;
+    font-family: Arial, sans-serif;
     text-align: center;
-    line-height: 30px;
-    font-family: 'Courier New', Courier, monospace;
-    font-weight: bold;
-    user-select: none;
+    padding: 20px;
+  }
+  .container {
+    max-width: 400px;
+    margin: auto;
+    background: rgba(0, 0, 0, 0.75); /* Fundo semitransparente */
+    padding: 20px;
+    border-radius: 10px;
+  }
+  input {
+    padding: 8px;
+    font-size: 1em;
+    border: none;
+    border-radius: 5px;
+    width: 100px;
+    text-align: center;
+  }
+  .btn {
+    padding: 10px 15px;
+    margin: 5px;
+    font-size: 1em;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  #talkBtn {
+    background: red;
+    color: white;
+    width: 100%;
+  }
+  #modeBtn {
+    background: blue;
+    color: white;
+    width: 100%;
   }
 </style>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body>
 
-<div id="radio">
-  <div id="display">OFF</div>
-  <button id="power">Ligar</button>
-  <input type="range" id="volume" min="0" max="100" value="50" />
-  <input type="range" id="frequency" min="88000" max="108000" value="94500" step="10" />
+<div class="container">
+  <h2>Walkie Talkie Web</h2>
+  <p id="meuIdTexto">Digite seu número para começar</p>
+  <input id="meuId" type="text" placeholder="1-100">
+  <button class="btn" onclick="iniciar()">Iniciar</button>
+
+  <hr>
+  <p>Chamar amigo:</p>
+  <input id="destinoId" type="text" placeholder="1-100">
+  <button class="btn" onclick="chamar()">Chamar</button>
+
+  <hr>
+  <button id="modeBtn" onclick="alternarModo()">Modo: Walkie Talkie</button>
+  <button id="talkBtn">📻 Pressione para falar</button>
 </div>
 
 <script>
-  const powerBtn = document.getElementById('power');
-  const volumeSlider = document.getElementById('volume');
-  const frequencySlider = document.getElementById('frequency');
-  const display = document.getElementById('display');
+let peer;
+let conexaoAtiva = null;
+let streamLocal = null;
+let modoLigacao = false;
+let somRadio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
-  let isOn = false;
+function iniciar() {
+  let meuNumero = parseInt(document.getElementById('meuId').value.trim());
+  if (isNaN(meuNumero) || meuNumero < 1 || meuNumero > 100) {
+    alert("Digite um número válido de 1 a 100");
+    return;
+  }
 
-  powerBtn.addEventListener('click', () => {
-    isOn = !isOn;
-    display.textContent = isOn ? `${(frequencySlider.value / 1000).toFixed(1)} MHz` : 'OFF';
-    powerBtn.textContent = isOn ? 'Desligar' : 'Ligar';
-    volumeSlider.disabled = !isOn;
-    frequencySlider.disabled = !isOn;
+  peer = new Peer("user-" + meuNumero, {
+    host: '0.peerjs.com',
+    port: 443,
+    secure: true
   });
 
-  frequencySlider.addEventListener('input', () => {
-    if (isOn) {
-      display.textContent = `${(frequencySlider.value / 1000).toFixed(1)} MHz`;
+  document.getElementById("meuIdTexto").textContent = "Meu ID: " + meuNumero;
+
+  peer.on('open', id => {
+    console.log("Conectado como:", id);
+  });
+
+  peer.on('call', call => {
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      call.answer(stream);
+      call.on('stream', remoteStream => tocarAudio(remoteStream));
+    });
+  });
+}
+
+function chamar() {
+  let destinoNumero = parseInt(document.getElementById('destinoId').value.trim());
+  if (isNaN(destinoNumero) || destinoNumero < 1 || destinoNumero > 100) {
+    alert("Digite o número do amigo de 1 a 100");
+    return;
+  }
+
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+    streamLocal = stream;
+    conexaoAtiva = peer.call("user-" + destinoNumero, stream);
+    conexaoAtiva.on('stream', remoteStream => tocarAudio(remoteStream));
+  });
+}
+
+function alternarModo() {
+  modoLigacao = !modoLigacao;
+  document.getElementById("modeBtn").textContent = `Modo: ${modoLigacao ? "Ligação" : "Walkie Talkie"}`;
+}
+
+document.getElementById("talkBtn").addEventListener('mousedown', iniciarTransmissao);
+document.getElementById("talkBtn").addEventListener('mouseup', pararTransmissao);
+document.getElementById("talkBtn").addEventListener('touchstart', iniciarTransmissao);
+document.getElementById("talkBtn").addEventListener('touchend', pararTransmissao);
+
+function iniciarTransmissao() {
+  if (!modoLigacao) somRadio.play();
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+    streamLocal = stream;
+    if (conexaoAtiva) {
+      conexaoAtiva.peerConnection.getSenders()[0].replaceTrack(stream.getTracks()[0]);
     }
   });
+}
 
-  volumeSlider.addEventListener('input', () => {
-    // Volume control placeholder
-    if (isOn) {
-      display.textContent = `${(frequencySlider.value / 1000).toFixed(1)} MHz - Vol: ${volumeSlider.value}%`;
-    }
-  });
+function pararTransmissao() {
+  if (!modoLigacao && streamLocal) {
+    streamLocal.getTracks().forEach(track => track.stop());
+    streamLocal = null;
+  }
+}
 
-  // Inicialmente desabilitado
-  volumeSlider.disabled = true;
-  frequencySlider.disabled = true;
+function tocarAudio(remoteStream) {
+  let audio = new Audio();
+  audio.srcObject = remoteStream;
+  audio.play();
+}
 </script>
 
 </body>
