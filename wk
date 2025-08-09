@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<title>Rádio a partir de Imagem</title>
+<style>
+  body {
+    background: #222;
+    color: #eee;
+    font-family: 'Arial Black', Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  #radio {
+    position: relative;
+    width: 320px;
+    height: 200px;
+    background: url('https://i.imgur.com/2D8WwBr.png') no-repeat center center;
+    background-size: contain;
+    filter: drop-shadow(0 0 10px #0f0);
+  }
+  button, input[type=range] {
+    position: absolute;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid #0f0;
+    color: #0f0;
+    cursor: pointer;
+    font-weight: bold;
+    user-select: none;
+  }
+  #power {
+    bottom: 20px;
+    left: 20px;
+    width: 60px;
+    height: 30px;
+  }
+  #volume {
+    bottom: 20px;
+    right: 20px;
+    width: 100px;
+  }
+  #frequency {
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 180px;
+  }
+  #display {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140px;
+    height: 30px;
+    background: rgba(0,0,0,0.8);
+    border: 1px solid #0f0;
+    color: #0f0;
+    text-align: center;
+    line-height: 30px;
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: bold;
+    user-select: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="radio">
+  <div id="display">OFF</div>
+  <button id="power">Ligar</button>
+  <input type="range" id="volume" min="0" max="100" value="50" />
+  <input type="range" id="frequency" min="88000" max="108000" value="94500" step="10" />
+</div>
+
+<script>
+  const powerBtn = document.getElementById('power');
+  const volumeSlider = document.getElementById('volume');
+  const frequencySlider = document.getElementById('frequency');
+  const display = document.getElementById('display');
+
+  let isOn = false;
+
+  powerBtn.addEventListener('click', () => {
+    isOn = !isOn;
+    display.textContent = isOn ? `${(frequencySlider.value / 1000).toFixed(1)} MHz` : 'OFF';
+    powerBtn.textContent = isOn ? 'Desligar' : 'Ligar';
+    volumeSlider.disabled = !isOn;
+    frequencySlider.disabled = !isOn;
+  });
+
+  frequencySlider.addEventListener('input', () => {
+    if (isOn) {
+      display.textContent = `${(frequencySlider.value / 1000).toFixed(1)} MHz`;
+    }
+  });
+
+  volumeSlider.addEventListener('input', () => {
+    // Volume control placeholder
+    if (isOn) {
+      display.textContent = `${(frequencySlider.value / 1000).toFixed(1)} MHz - Vol: ${volumeSlider.value}%`;
+    }
+  });
+
+  // Inicialmente desabilitado
+  volumeSlider.disabled = true;
+  frequencySlider.disabled = true;
+</script>
+
+</body>
+</html>
